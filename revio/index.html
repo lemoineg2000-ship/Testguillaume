@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Revio — Générateur de catalogues</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/variables.css">
+<link rel="stylesheet" href="css/upload.css">
+<link rel="stylesheet" href="css/catalogue.css">
+<link rel="stylesheet" href="css/cover.css">
+<link rel="stylesheet" href="css/summary.css">
+<link rel="stylesheet" href="css/print.css">
+</head>
+<body>
+
+<!-- ══════════════════════════════
+     UPLOAD SCREEN
+══════════════════════════════ -->
+<div id="upload-screen">
+  <div class="landing-logo"><img src="https://framerusercontent.com/images/LJsvdPae39IN7id1ld7qwbmRlg.png?scale-down-to=512&width=1300&height=380" alt="Revio" style="height:26px;width:auto;display:block;"></div>
+  <div class="landing-sub">Générateur de catalogues LLD</div>
+
+  <div class="client-name-wrapper">
+    <label class="client-label">Nom du client</label>
+    <input type="text" id="client-name" class="client-input" placeholder="ex : Société Dupont" autocomplete="off">
+  </div>
+
+  <div class="client-name-wrapper">
+    <label class="client-label">Nom du catalogue</label>
+    <input type="text" id="catalogue-name" class="client-input" placeholder="ex : Flotte 2026 - Véhicules hybrides" autocomplete="off">
+  </div>
+
+  <div class="drop-zone" id="drop-zone">
+    <span class="drop-icon-big">📂</span>
+    <div class="drop-title">Glisser votre fichier CSV ici</div>
+    <div class="drop-desc">Déposez un export Ayvens au format CSV<br>pour générer automatiquement votre catalogue</div>
+    <button class="drop-btn" id="drop-btn">
+      Choisir un fichier
+    </button>
+    <div class="drop-format">Format accepté : .csv · Encodage UTF-8</div>
+  </div>
+  <input type="file" id="csv-input" accept=".csv">
+</div>
+
+<!-- ══════════════════════════════
+     LOADING SCREEN
+══════════════════════════════ -->
+<div id="loading-screen">
+  <div class="spinner"></div>
+  <div class="loading-text">Génération du catalogue…</div>
+</div>
+
+<!-- ══════════════════════════════
+     CATALOGUE SCREEN
+══════════════════════════════ -->
+<div id="catalogue-screen">
+  <div class="toolbar">
+    <div class="toolbar-left">
+      <div class="toolbar-logo"><img src="https://framerusercontent.com/images/LJsvdPae39IN7id1ld7qwbmRlg.png?scale-down-to=512&width=1300&height=380" alt="Revio" style="height:26px;width:auto;display:block;"></div>
+      <div class="toolbar-info"><strong id="tb-count">0</strong> véhicule(s) · <span id="tb-filename"></span></div>
+    </div>
+    <div class="toolbar-right">
+      <button class="btn btn-ghost" id="btn-reset">← Nouveau CSV</button>
+      <button class="btn btn-green" id="btn-download">⬇ Télécharger HTML</button>
+      <button class="btn btn-primary" id="btn-print">🖨 Imprimer / PDF</button>
+    </div>
+  </div>
+  <div class="pages-container" id="pages-container"></div>
+</div>
+
+<script type="module" src="js/main.js"></script>
+</body>
+</html>

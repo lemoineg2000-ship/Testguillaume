@@ -1,0 +1,1273 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Revio — Générateur de catalogues</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════════
+   VARIABLES & RESET
+═══════════════════════════════════════════ */
+:root {
+  --bg: #f0f2f5;
+  --white: #ffffff;
+  --border: #e2e8f0;
+  --text: #111827;
+  --muted: #6b7280;
+  --light: #9ca3af;
+  --blue: #1d4ed8;
+  --blue-light: #3b82f6;
+  --blue-bg: #eff6ff;
+  --blue-border: #bfdbfe;
+  --green: #059669;
+  --green-bg: #ecfdf5;
+  --green-border: #a7f3d0;
+  --amber: #92400e;
+  --amber-bg: #fffbeb;
+  --amber-bg2: #fef3c7;
+  --amber-border: #fde68a;
+  --shadow: 0 4px 24px rgba(0,0,0,0.08);
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+/* ═══════════════════════════════════════════
+   LANDING / UPLOAD SCREEN
+═══════════════════════════════════════════ */
+#upload-screen {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+}
+
+.landing-logo {
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+}
+.landing-sub {
+  font-size: 14px;
+  color: var(--muted);
+  margin-bottom: 48px;
+  letter-spacing: 0.3px;
+}
+
+.drop-zone {
+  width: 520px;
+  background: var(--white);
+  border: 2px dashed var(--border);
+  border-radius: 20px;
+  padding: 56px 40px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s, transform 0.15s;
+  box-shadow: var(--shadow);
+  position: relative;
+}
+.drop-zone:hover, .drop-zone.drag-active {
+  border-color: var(--blue);
+  background: var(--blue-bg);
+  transform: scale(1.01);
+}
+.drop-zone.drag-active { border-style: solid; }
+
+.drop-icon-big {
+  font-size: 52px;
+  margin-bottom: 16px;
+  display: block;
+  opacity: 0.6;
+}
+.drop-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+.drop-desc {
+  font-size: 13px;
+  color: var(--muted);
+  margin-bottom: 24px;
+  line-height: 1.6;
+}
+.drop-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--blue);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  padding: 11px 24px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  transition: background 0.15s, transform 0.1s;
+}
+.drop-btn:hover { background: #1e40af; transform: translateY(-1px); }
+.client-name-wrapper {
+  width: 520px;
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.client-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+}
+.client-input {
+  font-family: 'Inter', sans-serif;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text);
+  background: var(--white);
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 16px;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  box-shadow: var(--shadow);
+}
+.client-input:focus {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px rgba(29,78,216,0.1);
+}
+.client-input::placeholder { color: var(--light); }
+
+.drop-format {
+  margin-top: 20px;
+  font-size: 11px;
+  color: var(--light);
+  letter-spacing: 0.5px;
+}
+#csv-input { display: none; }
+
+/* LOADING */
+#loading-screen {
+  display: none;
+  min-height: 100vh;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 20px;
+}
+.spinner {
+  width: 44px; height: 44px;
+  border: 3px solid var(--border);
+  border-top-color: var(--blue);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-text { font-size: 14px; color: var(--muted); font-weight: 500; }
+
+/* ═══════════════════════════════════════════
+   CATALOGUE SCREEN
+═══════════════════════════════════════════ */
+#catalogue-screen { display: none; }
+
+/* TOOLBAR */
+.toolbar {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 1000;
+  background: var(--white);
+  border-bottom: 1px solid var(--border);
+  padding: 0 28px;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 1px 8px rgba(0,0,0,0.06);
+}
+.toolbar-left { display: flex; align-items: center; gap: 16px; }
+.toolbar-logo { font-size: 20px; font-weight: 800; color: var(--text); letter-spacing: -1px; text-transform: uppercase; }
+.toolbar-info { font-size: 12px; color: var(--muted); }
+.toolbar-info strong { color: var(--text); }
+.toolbar-right { display: flex; gap: 10px; align-items: center; }
+
+.btn { display: inline-flex; align-items: center; gap: 7px; border: none; border-radius: 8px; padding: 8px 16px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: 'Inter', sans-serif; transition: all 0.15s; }
+.btn-ghost { background: transparent; color: var(--muted); border: 1px solid var(--border); }
+.btn-ghost:hover { background: var(--bg); color: var(--text); }
+.btn-primary { background: var(--blue); color: white; }
+.btn-primary:hover { background: #1e40af; }
+.btn-green { background: var(--green-bg); color: var(--green); border: 1px solid var(--green-border); }
+.btn-green:hover { background: #d1fae5; }
+
+/* PAGES CONTAINER */
+.pages-container {
+  padding: 72px 0 40px;
+  background: #d1d5db;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+}
+
+/* PAGE COUNTER PILL */
+.page-counter {
+  font-size: 11px;
+  color: #6b7280;
+  background: white;
+  border-radius: 20px;
+  padding: 3px 12px;
+  font-weight: 500;
+}
+
+/* ═══════════════════════════════════════════
+   CATALOGUE PAGE (A4 landscape = 297x210mm)
+   At 96dpi: 1122 × 794px
+═══════════════════════════════════════════ */
+.cat-page {
+  width: 1122px;
+  height: 794px;
+  background: #f5f6f8;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+  border-radius: 2px;
+  flex-shrink: 0;
+  position: relative;
+}
+
+/* TOPBAR */
+.cat-topbar {
+  background: #fff;
+  border-bottom: 1px solid #e8eaed;
+  padding: 0 28px;
+  height: 46px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+.cat-logo { display:flex; align-items:center; }
+.cat-topbar-date { font-size: 12px; color: #9ca3af; }
+.cat-topbar-right { font-size: 12px; color: #6b7280; font-weight: 500; }
+.cat-topbar-left { display: flex; align-items: center; gap: 14px; }
+
+/* BODY GRID */
+.cat-body {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 16px;
+  padding: 16px 16px 12px;
+  flex: 1;
+  min-height: 0;
+  align-items: stretch;
+}
+.cat-left { display: flex; flex-direction: column; gap: 12px; min-height: 0; }
+.cat-right { display: flex; flex-direction: column; gap: 7px; min-height: 0; }
+
+/* CARDS */
+.cat-card { background: #fff; border-radius: 12px; border: 1px solid #e8eaed; padding: 14px 18px; }
+.cat-card-title { font-size: 10px; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 9px; }
+
+/* VEHICLE CARD */
+.cat-vehicle-card { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+.cat-vehicle-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 3px; }
+.cat-vehicle-title { font-size: 20px; font-weight: 700; color: #111827; }
+.cat-vehicle-subtitle { font-size: 12px; color: #9ca3af; margin-bottom: 12px; }
+.cat-badge { font-size: 12px; font-weight: 600; padding: 0 13px; height: 32px; border-radius: 20px; white-space: nowrap; display: inline-flex; align-items: center; gap: 5px; }
+
+/* DRAG & DROP PHOTO */
+.cat-img-wrapper {
+  flex: 1;
+  min-height: 220px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+  background: #f8faff;
+  border: 2px dashed #c7d2fe;
+  transition: border-color 0.2s, background 0.2s, transform 0.15s;
+}
+.cat-img-wrapper:hover { border-color: #6366f1; background: #eef2ff; }
+.cat-img-wrapper.drag-over { border-color: #4f46e5; background: #e0e7ff; transform: scale(1.005); }
+.cat-img-wrapper.has-image { border: none; cursor: default; }
+.cat-img-wrapper.has-image:hover { background: transparent; transform: none; }
+
+.cat-drop-placeholder { display: flex; flex-direction: column; align-items: center; gap: 6px; pointer-events: none; user-select: none; }
+.cat-drop-icon { font-size: 30px; opacity: 0.3; }
+.cat-drop-text { font-size: 13px; font-weight: 600; color: #6366f1; }
+.cat-drop-sub { font-size: 11px; color: #a5b4fc; }
+.cat-url-row { position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); display: flex; gap: 6px; align-items: center; width: 85%; z-index: 5; }
+.cat-url-input { flex: 1; font-family: 'Inter', sans-serif; font-size: 11px; color: #374151; background: white; border: 1.5px solid #c7d2fe; border-radius: 7px; padding: 6px 10px; outline: none; transition: border-color 0.15s; min-width: 0; }
+.cat-url-input:focus { border-color: #6366f1; }
+.cat-url-input::placeholder { color: #a5b4fc; }
+.cat-url-btn { flex-shrink: 0; background: #6366f1; color: white; border: none; border-radius: 7px; width: 28px; height: 28px; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.15s; }
+.cat-url-btn:hover { background: #4f46e5; }
+
+.cat-img-el { display: none; width: 100%; height: 100%; object-fit: cover; border-radius: 8px; position: absolute; top: 0; left: 0; }
+
+.cat-remove-btn {
+  position: absolute; top: 8px; right: 8px;
+  background: rgba(0,0,0,0.5); color: #fff; border: none;
+  border-radius: 50%; width: 26px; height: 26px;
+  font-size: 13px; cursor: pointer;
+  display: none; align-items: center; justify-content: center;
+  transition: background 0.15s; z-index: 10; line-height: 1;
+}
+.cat-remove-btn:hover { background: rgba(0,0,0,0.75); }
+
+/* SPECS */
+
+/* specs removed */
+.cat-eco-val { color: #059669 !important; font-size: 13px; }
+.cat-eco-badge { background: #f0fdf4; border-radius: 0 0 0 8px; }
+.cat-eco-pill { background: #eff6ff !important; color: #1d4ed8 !important; border: 1px solid #bfdbfe !important; }
+
+/* SERVICES */
+.cat-services-card { padding: 12px 16px; flex-shrink: 0; }
+.cat-services-card .cat-card-title { margin-bottom: 8px; }
+.cat-services-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.cat-service-item { display: flex; gap: 10px; align-items: center; padding: 11px 14px; background: #f9fafb; border-radius: 8px; }
+.cat-service-emoji { display:flex; align-items:center; flex-shrink: 0; width:22px; height:22px; }
+.cat-service-name { font-size: 13px; font-weight: 600; color: #111827; margin-bottom: 2px; }
+.cat-service-desc { font-size: 11px; color: #9ca3af; line-height: 1.3; }
+
+/* CONTRACT */
+.cat-contract-card { padding: 12px 16px; flex-shrink: 0; }
+.cat-contract-title { font-size: 16px; font-weight: 700; color: #111827; margin-bottom: 10px; padding-bottom: 10px; border-bottom: 2px solid #f3f4f6; }
+.cat-kpis { display: flex; align-items: center; margin-bottom: 10px; }
+.cat-kpi { flex: 1; text-align: center; }
+.cat-kpi-val { font-size: 24px; font-weight: 700; color: #1d4ed8; line-height: 1; }
+.cat-kpi-unit { font-size: 13px; font-weight: 500; color: #6b7280; }
+.cat-kpi-sep { width: 1px; height: 38px; background: #e5e7eb; margin: 0 8px; }
+.cat-kpi-loyer-row { text-align: center; padding: 8px 0 10px; border-top: 1px solid #f3f4f6; margin-top: -6px; }
+.cat-kpi-loyer-val { font-size: 22px; font-weight: 700; color: #1d4ed8; line-height: 1; margin-bottom: 2px; }
+.cat-kpi-loyer-label { font-size: 10px; font-weight: 600; color: #9ca3af; text-transform: uppercase; letter-spacing: 1px; }
+.cat-cd-row { display: flex; justify-content: space-between; padding: 7px 0; border-bottom: 1px solid #f3f4f6; font-size: 13px; }
+.cat-cd-row:last-child { border-bottom: none; }
+.cat-cd-label { color: #6b7280; }
+.cat-cd-val { font-weight: 600; color: #111827; }
+
+/* TCO TOTAL */
+.cat-tco-total {
+  background-color: #1d4ed8;
+  background-image: linear-gradient(135deg, #1d4ed8 0%, #3b82f6 100%);
+  border-radius: 12px;
+  padding: 12px 16px;
+  text-align: center;
+  flex-shrink: 0;
+}
+.cat-tco-label { font-size: 10px; font-weight: 700; color: rgba(255,255,255,0.75); letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 4px; }
+.cat-tco-val { font-size: 26px; font-weight: 700; color: #fff; line-height: 1; }
+
+/* COMPOSITION */
+.cat-comp-card { padding: 9px 16px; flex-shrink: 0; }
+.cat-comp-line { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #f3f4f6; font-size: 12px; }
+.cat-comp-line:last-child { border-bottom: none; }
+.cat-comp-label { color: #374151; }
+.cat-comp-val { font-weight: 600; color: #111827; }
+
+/* OPTIONS card */
+.cat-options-card { padding: 10px 16px; flex-shrink: 0; }
+.cat-options-card .cat-card-title { margin-bottom: 8px; }
+.cat-options-rows { display: grid; grid-template-columns: 1fr 1fr; gap: 0; overflow: hidden; }
+.cat-opt-row { display: flex; align-items: baseline; padding: 4px 6px; border-bottom: 1px solid #f3f4f6; gap: 4px; }
+.cat-opt-row:last-child { border-bottom: none; }
+.cat-opt-row:nth-last-child(2):nth-child(odd) { border-bottom: none; }
+.cat-opt-name { font-size: 12px; color: #374151; flex: 1; line-height: 1.4; }
+.cat-opt-price { font-size: 12px; font-weight: 600; color: #111827; white-space: nowrap; flex-shrink: 0; }
+
+/* CARAC card */
+.cat-malus-card { padding: 9px 16px; flex-shrink: 0; }
+.cat-carac-card { padding: 9px 16px; flex-shrink: 0; }
+
+/* ═══════════════════════════════════════════
+   COVER PAGE
+═══════════════════════════════════════════ */
+.cat-cover {
+  background: #fff !important;
+  position: relative;
+  overflow: hidden;
+}
+.cat-cover::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 6px;
+  background: linear-gradient(90deg, #1d4ed8, #3b82f6);
+}
+.cat-cover::after {
+  content: '';
+  position: absolute;
+  bottom: -120px; right: -120px;
+  width: 480px; height: 480px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #eff6ff 0%, transparent 70%);
+  pointer-events: none;
+}
+.cover-inner {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 64px 72px 56px;
+}
+.cover-top { display: flex; flex-direction: column; }
+.cover-logo-row {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  margin-bottom: 48px;
+}
+.cover-logo { height: 36px; width: auto; }
+.cover-logo-sep {
+  width: 1.5px;
+  height: 32px;
+  background: #d1d5db;
+}
+.cover-client-name {
+  font-size: 22px;
+  font-weight: 600;
+  color: #374151;
+  letter-spacing: -0.3px;
+}
+.cover-divider {
+  width: 56px;
+  height: 3px;
+  background: linear-gradient(90deg, #1d4ed8, #3b82f6);
+  border-radius: 2px;
+  margin-bottom: 28px;
+}
+.cover-catalogue-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  margin-bottom: 10px;
+}
+.cover-catalogue-name {
+  font-size: 46px;
+  font-weight: 800;
+  color: #111827;
+  letter-spacing: -1.5px;
+  line-height: 1.1;
+  max-width: 700px;
+}
+.cover-notes-wrapper {
+  margin-bottom: 32px;
+}
+.cover-notes-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  margin-bottom: 10px;
+}
+.cover-notes {
+  min-height: 80px;
+  max-height: 160px;
+  background: #f9fafb;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 14px 18px;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  color: #374151;
+  line-height: 1.7;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  overflow-y: auto;
+}
+.cover-notes:focus {
+  border-color: #a5b4fc;
+  box-shadow: 0 0 0 3px rgba(165,180,252,0.2);
+}
+.cover-notes:empty::before {
+  content: attr(data-placeholder);
+  color: #d1d5db;
+  pointer-events: none;
+}
+.cover-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.cover-date {
+  font-size: 13px;
+  color: #9ca3af;
+  font-weight: 500;
+}
+.cover-count {
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+  background: #1d4ed8;
+  padding: 5px 14px;
+  border-radius: 20px;
+}
+
+
+/* ═══════════════════════════════════════════
+   SUMMARY PAGE
+═══════════════════════════════════════════ */
+.cat-summary { background: #fff !important; }
+.sum-body { padding: 20px 28px 16px; display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden; }
+.sum-title { font-size: 18px; font-weight: 700; color: #111827; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 2px solid #f3f4f6; flex-shrink: 0; }
+.sum-table { width: 100%; border-collapse: collapse; }
+.sum-head { background: #f8faff; }
+.sum-th { padding: 9px 12px; font-size: 9px; font-weight: 700; color: #9ca3af; text-transform: uppercase; letter-spacing: 1px; text-align: center; border-bottom: 2px solid #e5e7eb; border-right: 1px dashed #e5e7eb; }
+.sum-th:first-child { text-align: center; }
+.sum-th:nth-child(2) { text-align: left; }
+.sum-th:last-child { border-right: none; }
+.sum-row { border-bottom: 1px dashed #e5e7eb; }
+.sum-row:last-child { border-bottom: none; }
+.sum-td { padding: 8px 12px; font-size: 12px; color: #374151; vertical-align: middle; text-align: center; border-right: 1px dashed #e5e7eb; }
+.sum-td:last-child { border-right: none; }
+.sum-num { color: #d1d5db; font-size: 11px; width: 28px; }
+.sum-car { text-align: left !important; }
+.sum-car-name { font-size: 13px; font-weight: 700; color: #111827; }
+.sum-car-model { font-size: 10px; color: #9ca3af; margin-top: 1px; }
+.sum-num-val { font-weight: 600; color: #111827; }
+.sum-qty-line { width: 44px; height: 1px; background: #9ca3af; margin: 0 auto; }
+
+/* ═══════════════════════════════════════════
+   PRINT STYLES
+═══════════════════════════════════════════ */
+@media print {
+  @page { size: 297mm 210mm; margin: 0; }
+  html, body { margin: 0; padding: 0; background: white; }
+  #upload-screen, #loading-screen, .toolbar { display: none !important; }
+  #catalogue-screen { display: block !important; }
+  .pages-container { padding: 0; background: white; gap: 0; }
+  .page-counter { display: none; }
+  .cat-page {
+    width: 297mm; height: 210mm;
+    margin: 0; box-shadow: none; border-radius: 0;
+    page-break-after: always;
+    page-break-inside: avoid;
+    background: #f5f6f8 !important;
+  }
+  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
+  .sum-row:hover { background: transparent !important; }
+  .cat-cover { background: #fff !important; }
+  .cover-notes:empty { border: none !important; background: transparent !important; box-shadow: none !important; min-height: 0 !important; padding: 0 !important; }
+  .cover-notes:not(:empty) { border: 1px solid #e5e7eb !important; box-shadow: none !important; background: #f9fafb !important; }
+  .cover-notes::before { display: none !important; }
+  .cover-notes-label { display: none; }
+  .cover-notes:not(:empty) + * { display: block; }
+  .cover-notes-wrapper:has(.cover-notes:not(:empty)) .cover-notes-label { display: block; }
+  .cat-cover::before { background: linear-gradient(90deg, #1d4ed8, #3b82f6) !important; }
+  .cat-drop-placeholder { display: none !important; }
+  .cat-url-row { display: none !important; }
+  [id^="cat-url-row-"] { display: none !important; }
+  .cat-remove-btn { display: none !important; }
+  .cat-img-wrapper { border: 1px solid #e0e7ff !important; cursor: default !important; }
+}
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════
+     UPLOAD SCREEN
+══════════════════════════════ -->
+<div id="upload-screen">
+  <div class="landing-logo"><img src="https://framerusercontent.com/images/LJsvdPae39IN7id1ld7qwbmRlg.png?scale-down-to=512&width=1300&height=380" alt="Revio" style="height:26px;width:auto;display:block;"></div>
+  <div class="landing-sub">Générateur de catalogues LLD</div>
+
+  <div class="client-name-wrapper">
+    <label class="client-label">Nom du client</label>
+    <input type="text" id="client-name" class="client-input" placeholder="ex : Société Dupont" autocomplete="off">
+  </div>
+
+  <div class="client-name-wrapper">
+    <label class="client-label">Nom du catalogue</label>
+    <input type="text" id="catalogue-name" class="client-input" placeholder="ex : Flotte 2026 - Véhicules hybrides" autocomplete="off">
+  </div>
+
+  <div class="drop-zone" id="drop-zone" onclick="document.getElementById('csv-input').click()">
+    <span class="drop-icon-big">📂</span>
+    <div class="drop-title">Glisser votre fichier CSV ici</div>
+    <div class="drop-desc">Déposez un export Ayvens au format CSV<br>pour générer automatiquement votre catalogue</div>
+    <button class="drop-btn" onclick="event.stopPropagation(); document.getElementById('csv-input').click()">
+      Choisir un fichier
+    </button>
+    <div class="drop-format">Format accepté : .csv · Encodage UTF-8</div>
+  </div>
+  <input type="file" id="csv-input" accept=".csv" onchange="handleFileSelect(event)">
+</div>
+
+<!-- ══════════════════════════════
+     LOADING SCREEN
+══════════════════════════════ -->
+<div id="loading-screen">
+  <div class="spinner"></div>
+  <div class="loading-text">Génération du catalogue…</div>
+</div>
+
+<!-- ══════════════════════════════
+     CATALOGUE SCREEN
+══════════════════════════════ -->
+<div id="catalogue-screen">
+  <div class="toolbar">
+    <div class="toolbar-left">
+      <div class="toolbar-logo"><img src="https://framerusercontent.com/images/LJsvdPae39IN7id1ld7qwbmRlg.png?scale-down-to=512&width=1300&height=380" alt="Revio" style="height:26px;width:auto;display:block;"></div>
+      <div class="toolbar-info"><strong id="tb-count">0</strong> véhicule(s) · <span id="tb-filename"></span></div>
+    </div>
+    <div class="toolbar-right">
+      <button class="btn btn-ghost" onclick="resetToUpload()">← Nouveau CSV</button>
+      <button class="btn btn-green" onclick="downloadHTML()">⬇ Télécharger HTML</button>
+      <button class="btn btn-primary" onclick="window.print()">🖨 Imprimer / PDF</button>
+    </div>
+  </div>
+  <div class="pages-container" id="pages-container"></div>
+</div>
+
+<script>
+// ══════════════════════════════
+// HELPERS
+// ══════════════════════════════
+function fmtNum(val, dec = 0) {
+  const n = parseFloat(val);
+  if (isNaN(n)) return val || '—';
+  if (dec === 0) return Math.round(n).toLocaleString('fr-FR');
+  return n.toLocaleString('fr-FR', { minimumFractionDigits: dec, maximumFractionDigits: dec });
+}
+function fmtEur(val, dec = 0) { return fmtNum(val, dec) + '\u00a0€'; }
+
+function isElec(energy) {
+  const e = (energy || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  return e.includes('electrique') || e.includes('bev') || e === 'ev';
+}
+function energyBadge(energy) {
+  const e = (energy || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  if (e.includes('electrique') || e.includes('bev') || e === 'ev') return { text: 'Électrique', bg: '#eff6ff', color: '#1d4ed8', border: '#bfdbfe' };
+  if (e.includes('plug') || e.includes('rechargeable')) return { text: 'Hybride rechargeable', bg: '#ecfdf5', color: '#059669', border: '#a7f3d0' };
+  if (e.includes('hybride')) return { text: 'Hybride', bg: '#ecfdf5', color: '#059669', border: '#a7f3d0' };
+  if (e.includes('diesel')) return { text: 'Diesel', bg: '#fee2e2', color: '#dc2626', border: '#fca5a5' };
+  return { text: 'Essence', bg: '#fff7ed', color: '#c2410c', border: '#fed7aa' };
+}
+
+function fmtDate(raw) {
+  const d = new Date(raw);
+  if (isNaN(d)) return raw || '';
+  return d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+}
+
+// ══════════════════════════════
+// DRAG & DROP — UPLOAD ZONE
+// ══════════════════════════════
+const dropZone = document.getElementById('drop-zone');
+
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-active'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-active'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropZone.classList.remove('drag-active');
+  const file = e.dataTransfer.files[0];
+  if (file) processCSV(file);
+});
+
+function handleFileSelect(e) {
+  const file = e.target.files[0];
+  if (file) processCSV(file);
+}
+
+// ══════════════════════════════
+// CSV PROCESSING
+// ══════════════════════════════
+let currentFilename = '';
+let currentRows = [];
+let clientName = '';
+let catalogueName = '';
+
+// ══════════════════════════════
+// SERVICE ICONS (base64 SVG)
+// ══════════════════════════════
+const ICON_BUILD  = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGhlaWdodD0iMjRweCIgdmlld0JveD0iMCAtOTYwIDk2MCA5NjAiIHdpZHRoPSIyNHB4IiBmaWxsPSIjNmI3MjgwIj48cGF0aCBkPSJNNjg2LTEzMiA0NDQtMzc2cS0yMCA4LTQwLjUgMTJ0LTQzLjUgNHEtMTAwIDAtMTcwLTcwdC03MC0xNzBxMC0zNiAxMC02OC41dDI4LTYxLjVsMTQ2IDE0NiA3Mi03Mi0xNDYtMTQ2cTI5LTE4IDYxLjUtMjh0NjguNS0xMHExMDAgMCAxNzAgNzB0NzAgMTcwcTAgMjMtNCA0My41VDU4NC01MTZsMjQ0IDI0MnExMiAxMiAxMiAyOXQtMTIgMjlsLTg0IDg0cS0xMiAxMi0yOSAxMnQtMjktMTJabTI5LTg1IDI3LTI3LTI1Ni0yNTZxMTgtMjAgMjYtNDYuNXQ4LTUzLjVxMC02MC0zOC41LTEwNC41VDM4Ni03NThsNzQgNzRxMTIgMTIgMTIgMjh0LTEyIDI4TDMzMi01MDBxLTEyIDEyLTI4IDEydC0yOC0xMmwtNzQtNzRxOSA1NyA1My41IDk1LjVUMzYwLTQ0MHEyNiAwIDUyLTh0NDctMjVsMjU2IDI1NlpNNDcyLTQ4OFoiLz48L3N2Zz4=";
+const ICON_TIRE   = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGhlaWdodD0iMjRweCIgdmlld0JveD0iMCAtOTYwIDk2MCA5NjAiIHdpZHRoPSIyNHB4IiBmaWxsPSIjNmI3MjgwIj48cGF0aCBkPSJNNzYwLTY0MHEtMTcgMC0yOC41LTExLjVUNzIwLTY4MHEwLTggMy41LTE1LjVUNzMyLTcwOHExMi0xMiA1NS0yN2w0My0xNXEtOCAyMy0xNSA0My02IDE3LTEzLjUgMzNUNzg4LTY1MnEtNSA1LTEyLjUgOC41VDc2MC02NDBaTTE2MC0xMjBxLTMzIDAtNTYuNS0yMy41VDgwLTIwMHYtNTYwcTAtMzMgMjMuNS01Ni41VDE2MC04NDBoMjQwcTMzIDAgNTYuNSAyMy41VDQ4MC03NjB2MzI3cTktMyAxOS01dDIxLTJxNTAgMCA4NSAzNXQzNSA4NXY4MHEwIDE3IDExLjUgMjguNVQ2ODAtMjAwcTE3IDAgMjguNS0xMS41VDcyMC0yNDB2LTIwMGgtNDB2LTU3cS01NC0yMy04Ny03MnQtMzMtMTExcTAtODMgNTguNS0xNDEuNVQ3NjAtODgwcTgzIDAgMTQxLjUgNTguNVQ5NjAtNjgwcTAgNjItMzMgMTExdC04NyA3MnY1N2gtNDB2MjAwcTAgNTAtMzUgODV0LTg1IDM1cS01MCAwLTg1LTM1dC0zNS04NXYtODBxMC0xNy0xMS41LTI4LjVUNTIwLTM2MHEtMTcgMC0yOC41IDExLjVUNDgwLTMyMHYxMjBxMCAzMy0yMy41IDU2LjVUNDAwLTEyMEgxNjBabTYwMC00NDBxNTAgMCA4NS0zNXQzNS04NXEwLTUwLTM1LTg1dC04NS0zNXEtNTAgMC04NSAzNXQtMzUgODVxMCA1MCAzNSA4NXQ4NSAzNVpNMTYwLTIwMGgyNDB2LTgwbC04MCA4MHYtMTEzbDgwLTgwdi04N2wtODAgODB2LTExM2w4MC04MHYtODdsLTgwIDgwdi0xMTNsNDctNDdIMTkzbDQ3IDQ3djExM2wtODAtODB2ODdsODAgODB2MTEzbC04MC04MHY4N2w4MCA4MHYxMTNsLTgwLTgwdjgwWm0xMjAtMjgwWiIvPjwvc3ZnPg==";
+const ICON_SAFETY = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGhlaWdodD0iMjRweCIgdmlld0JveD0iMCAtOTYwIDk2MCA5NjAiIHdpZHRoPSIyNHB4IiBmaWxsPSIjNmI3MjgwIj48cGF0aCBkPSJNNjIxLjUtMzM4LjVRNjgwLTM5NyA2ODAtNDgwdC01OC41LTE0MS41UTU2My02ODAgNDgwLTY4MHQtMTQxLjUgNTguNVEyODAtNTYzIDI4MC00ODB0NTguNSAxNDEuNVEzOTctMjgwIDQ4MC0yODB0MTQxLjUtNTguNVpNNTQ2LTM4NmwtODYtODZ2LTEyOGg0MHYxMTJsNzQgNzQtMjggMjhaTTQ4MC04MHEtMTM5LTM1LTIyOS41LTE1OS41VDE2MC01MTZ2LTI0NGwzMjAtMTIwIDMyMCAxMjB2MjQ0cTAgMTUyLTkwLjUgMjc2LjVUNDgwLTgwWm0wLTg0cTEwNC0zMyAxNzItMTMydDY4LTIyMHYtMTg5bC0yNDAtOTAtMjQwIDkwdjE4OXEwIDEyMSA2OCAyMjB0MTcyIDEzMlptMC0zMTZaIi8+PC9zdmc+";
+const ICON_GEAR   = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGhlaWdodD0iMjRweCIgdmlld0JveD0iMCAtOTYwIDk2MCA5NjAiIHdpZHRoPSIyNHB4IiBmaWxsPSIjNmI3MjgwIj48cGF0aCBkPSJNMTYwLTEyMHEtMTcgMC0yOC41LTExLjVUMTIwLTE2MHYtMzIwbDg0LTI0MHE2LTE4IDIxLjUtMjl0MzQuNS0xMWgyMjNxLTIgMTAtMi41IDE5LjVUNDgwLTcyMHEwIDExIC41IDIwLjVUNDgzLTY4MEgyNzRsLTQyIDEyMGgzMDlxMzMgMzcgNzkgNTguNVQ3MjAtNDgwSDIwMHYyMDBoNTYwdi0yMDRxMjEtNCA0MS0xMXQzOS0xOHYzNTNxMCAxNy0xMS41IDI4LjVUODAwLTEyMGgtNDBxLTE3IDAtMjguNS0xMS41VDcyMC0xNjB2LTQwSDI0MHY0MHEwIDE3LTExLjUgMjguNVQyMDAtMTIwaC00MFptNTMzLTQ0MC0xMS00N3EtMTEtNC0yMS41LTEwVDY0MS02MzFsLTQ2IDE1LTI3LTQ2IDM1LTM0cS0yLTEyLTItMjR0Mi0yNGwtMzUtMzIgMjctNDYgNDUgMTNxOS04IDE5LjUtMTR0MjIuNS0xMGwxMS00N2g1M2wxMiA0NnExMiA1IDIyLjUgMTF0MTkuNSAxNGw0NS0xMyAyNyA0Ni0zNCAzMnEyIDEyIDIuNSAyNC41VDgzOC02OTVsMzQgMzItMjYgNDYtNDYtMTRxLTkgOC0yMCAxNHQtMjIgMTBsLTEyIDQ3aC01M1ptNjkuNS0xMTcuNVE3ODAtNjk1IDc4MC03MjB0LTE3LjUtNDIuNVE3NDUtNzgwIDcyMC03ODB0LTQyLjUgMTcuNVE2NjAtNzQ1IDY2MC03MjB0MTcuNSA0Mi41UTY5NS02NjAgNzIwLTY2MHQ0Mi41LTE3LjVaTTIwMC00ODB2MjAwLTIwMFptMTAwIDE2MHEyNSAwIDQyLjUtMTcuNVQzNjAtMzgwcTAtMjUtMTcuNS00Mi41VDMwMC00NDBxLTI1IDAtNDIuNSAxNy41VDI0MC0zODBxMCAyNSAxNy41IDQyLjVUMzAwLTMyMFptMzYwIDBxMjUgMCA0Mi41LTE3LjVUNzIwLTM4MHEwLTI1LTE3LjUtNDIuNVQ2NjAtNDQwcS0yNSAwLTQyLjUgMTcuNVQ2MDAtMzgwcTAgMjUgMTcuNSA0Mi41VDY2MC0zMjBaIi8+PC9zdmc+";
+function iconImg(src) { return '<img src="' + src + '" style="width:20px;height:20px;flex-shrink:0;opacity:0.85;">'; }
+
+
+
+function processCSV(file) {
+  currentFilename = file.name;
+  clientName = document.getElementById('client-name').value.trim() || 'Client';
+  catalogueName = document.getElementById('catalogue-name').value.trim() || 'Catalogue LLD';
+  document.getElementById('upload-screen').style.display = 'none';
+  document.getElementById('loading-screen').style.display = 'flex';
+
+  Papa.parse(file, {
+    header: true,
+    skipEmptyLines: true,
+    encoding: 'UTF-8',
+    complete: function(results) {
+      currentRows = results.data;
+      setTimeout(() => generateCatalogue(currentRows), 300);
+    },
+    error: function() {
+      alert('Erreur lors de la lecture du CSV. Vérifiez le format.');
+      resetToUpload();
+    }
+  });
+}
+
+// ══════════════════════════════
+// CATALOGUE GENERATION
+// ══════════════════════════════
+let pageCount = 0;
+
+function generateCatalogue(rows) {
+  pageCount = rows.length;
+  const container = document.getElementById('pages-container');
+  container.innerHTML = '';
+
+  document.getElementById('tb-count').textContent = rows.length;
+  document.getElementById('tb-filename').textContent = currentFilename;
+
+  // Cover page (no pill)
+  const cover = buildCoverPage();
+  container.appendChild(cover);
+
+  rows.forEach((r, idx) => {
+    // Page counter pill
+    const pill = document.createElement('div');
+    pill.className = 'page-counter';
+    pill.textContent = `Page ${idx + 1} / ${rows.length}`;
+    container.appendChild(pill);
+
+    // Build page
+    const page = buildPage(r, idx);
+    container.appendChild(page);
+
+    // Attach photo drag/drop after DOM insert
+    attachPhotoHandlers(idx);
+    fitOptions(idx);
+  });
+
+  // Summary page only if more than 2 vehicles
+  if (rows.length >= 2) {
+    const summaryPill = document.createElement('div');
+    summaryPill.className = 'page-counter';
+    summaryPill.textContent = 'Récapitulatif';
+    container.appendChild(summaryPill);
+    container.appendChild(buildSummaryPage(rows));
+  }
+
+  document.getElementById('loading-screen').style.display = 'none';
+  document.getElementById('catalogue-screen').style.display = 'block';
+}
+
+function buildSummaryPage(rows) {
+  const page = document.createElement('div');
+  page.className = 'cat-page cat-summary';
+
+  const rowsHTML = rows.map((r, idx) => {
+    const marque   = capitalize(r['Marque'] || '');
+    const gen      = capitalize(r['Génération'] || '');
+    const modele   = r['Modèle (label)'] || '';
+    const badge    = energyBadge(r['Énergie'] || '');
+    const loyer    = fmtEur(r['Loyer mensuel (€)'] || 0);
+    const tco      = fmtEur(r['TCO mensuel (€)'] || r['TCO / mois (€)'] || 0);
+    const coffre   = r['Volume coffre (L)'] ? fmtNum(r['Volume coffre (L)']) + '\u00a0L' : '—';
+    const autonomie = isElec(r['Énergie'])
+      ? (r['Autonomie batterie'] ? fmtNum(r['Autonomie batterie']) + '\u00a0km' : '—')
+      : (r['Consommation'] ? fmtNum(r['Consommation'], 1) + '\u00a0L/100' : '—');
+    return `<tr class="sum-row">
+      <td class="sum-td sum-num">${idx + 1}</td>
+      <td class="sum-td sum-car">
+        <div class="sum-car-name">${esc(marque)} ${esc(gen)}</div>
+        <div class="sum-car-model">${esc(modele)}</div>
+      </td>
+      <td class="sum-td">
+        <span class="cat-badge" style="background:${badge.bg};color:${badge.color};border:1px solid ${badge.border};font-size:10px;padding:0 8px;height:22px;">${badge.text}</span>
+      </td>
+      <td class="sum-td sum-num-val">${loyer}</td>
+      <td class="sum-td sum-num-val">${tco}</td>
+      <td class="sum-td sum-num-val">${coffre}</td>
+      <td class="sum-td sum-num-val">${autonomie}</td>
+      <td class="sum-td"><div class="sum-qty-line"></div></td>
+    </tr>`;
+  }).join('');
+
+  // Find logo URL from existing pages
+  const logoURL = 'https://framerusercontent.com/images/LJsvdPae39IN7id1ld7qwbmRlg.png?scale-down-to=512&width=1300&height=380';
+
+  page.innerHTML = `
+    <div class="cat-topbar">
+      <div class="cat-topbar-left">
+        <div class="cat-logo"><img src="${logoURL}" alt="Revio" style="height:26px;width:auto;display:block;"></div>
+      </div>
+      <div class="cat-topbar-right">${esc(clientName)}</div>
+    </div>
+    <div class="sum-body">
+      <div class="sum-title">Récapitulatif des véhicules</div>
+      <table class="sum-table">
+        <thead>
+          <tr class="sum-head">
+            <th class="sum-th">#</th>
+            <th class="sum-th" style="text-align:left;">Véhicule</th>
+            <th class="sum-th">Énergie</th>
+            <th class="sum-th">Loyer mensuel</th>
+            <th class="sum-th">TCO mensuel</th>
+            <th class="sum-th">Coffre</th>
+            <th class="sum-th">Autonomie / Conso</th>
+            <th class="sum-th">Qté</th>
+          </tr>
+        </thead>
+        <tbody>${rowsHTML}</tbody>
+      </table>
+    </div>
+  `;
+  return page;
+}
+
+function buildCoverPage() {
+  const today = new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' });
+  const cover = document.createElement('div');
+  cover.className = 'cat-page cat-cover';
+  cover.innerHTML = `
+    <div class="cover-inner">
+      <div class="cover-top">
+        <div class="cover-logo-row">
+          <img src="https://framerusercontent.com/images/LJsvdPae39IN7id1ld7qwbmRlg.png?scale-down-to=512&width=1300&height=380" alt="Revio" class="cover-logo">
+          <div class="cover-logo-sep"></div>
+          <div class="cover-client-name">${esc(clientName)}</div>
+        </div>
+        <div class="cover-divider"></div>
+        <div class="cover-catalogue-name">${esc(catalogueName)}</div>
+      </div>
+      <div class="cover-notes-wrapper">
+        <div class="cover-notes-label">Notes</div>
+        <div class="cover-notes" contenteditable="true" data-placeholder="Ajouter des notes pour le client…"></div>
+      </div>
+      <div class="cover-bottom">
+        <div class="cover-date">${today}</div>
+        <div class="cover-count">${pageCount} véhicule${pageCount > 1 ? 's' : ''}</div>
+      </div>
+    </div>
+  `;
+  return cover;
+}
+
+function buildPage(r, idx) {
+  const badge = energyBadge(r['Énergie'] || '');
+  const date = fmtDate(r['Date/heure'] || '25/02/2026');
+
+  // Services
+  const services = [];
+  if ((r['Maintenance'] || '').trim()) services.push([iconImg(ICON_BUILD), r['Maintenance'], '']);
+  if ((r['Pneus (type)'] || '').trim()) services.push([iconImg(ICON_TIRE), r['Pneus (type)'], r['Pneus (quantité)'] || '']);
+  if ((r['Assurance (offre)'] || '').trim()) services.push([iconImg(ICON_SAFETY), 'Assurance', '']);
+  if ((r['Véh. remplacement'] || '').trim()) services.push([iconImg(ICON_GEAR), 'Véh. remplacement', r['Véh. remplacement']]);
+
+  const servicesHTML = services.map(([em, name, desc]) => `
+    <div class="cat-service-item">
+      <div class="cat-service-emoji">${em}</div>
+      <div>
+        <div class="cat-service-name">${esc(name)}</div>
+        ${desc ? `<div class="cat-service-desc">${esc(desc)}</div>` : ''}
+      </div>
+    </div>`).join('');
+
+  const optRaw = (r['Détail options'] || '').trim();
+  const optTotal = r['Total options (€)'] || '0';
+  const optLines = optRaw ? optRaw.split(' | ').map(s => s.trim()).filter(Boolean) : [];
+  function capitalizeOpt(str) {
+    // Preserve price in parens, capitalize the rest
+    return str.replace(/^([^(]+)(\(.*\))?$/, (_, name, price) => {
+      const cap = name.trim().charAt(0).toUpperCase() + name.trim().slice(1).toLowerCase();
+      return price ? cap + ' ' + price : cap;
+    });
+  }
+  const optRowsHTML = optLines.length > 0
+    ? optLines.map(opt => `<div class="cat-opt-row"><span class="cat-opt-name">${esc(capitalizeOpt(opt))}</span></div>`).join('')
+    : '<div class="cat-opt-row"><span class="cat-opt-name" style="color:#9ca3af;font-style:italic;">Aucune option</span></div>';
+
+  const marque = capitalize(r['Marque'] || '');
+  const generation = capitalize(r['Génération'] || '');
+  const modele = r['Modèle (label)'] || '';
+  const transmission = r['Transmission'] || '';
+  const portes = r['Portes'] || '';
+  const numero = r['N° demande'] || '';
+  const tco = fmtEur(r['TCO mensuel (€)'] || r['TCO / mois (€)'] || '0');
+
+  const page = document.createElement('div');
+  page.className = 'cat-page';
+  page.id = `cat-page-${idx}`;
+  page.innerHTML = `
+    <div class="cat-topbar">
+      <div class="cat-topbar-left">
+        <div class="cat-logo"><img src="https://framerusercontent.com/images/LJsvdPae39IN7id1ld7qwbmRlg.png?scale-down-to=512&width=1300&height=380" alt="Revio" style="height:26px;width:auto;display:block;"></div>
+        <div class="cat-topbar-date">${date}</div>
+      </div>
+      <div class="cat-topbar-right">N°\u00a0${esc(numero)}\u00a0·\u00a0${esc(clientName)}</div>
+    </div>
+
+    <div class="cat-body">
+      <div class="cat-left">
+        <div class="cat-card cat-vehicle-card" id="veh-card-${idx}">
+          <div class="cat-vehicle-header">
+            <div>
+              <div class="cat-vehicle-title">${esc(marque)} ${esc(generation)}</div>
+              <div class="cat-vehicle-subtitle">${esc(modele)}\u00a0·\u00a0${esc(transmission)}\u00a0·\u00a0${esc(portes)} portes${r['Type véhicule'] ? '\u00a0·\u00a0' + esc(r['Type véhicule']) : ''}</div>
+            </div>
+            <div style="display:flex;gap:6px;align-items:center;flex-shrink:0;">
+              <span class="cat-badge" style="background:${badge.bg};color:${badge.color};border:1px solid ${badge.border}">${badge.text}</span>
+              ${(r['Eco score'] || '').toLowerCase() === 'oui' ? '<span class="cat-badge cat-eco-pill"><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGhlaWdodD0iMjRweCIgdmlld0JveD0iMCAtOTYwIDk2MCA5NjAiIHdpZHRoPSIyNHB4IiBmaWxsPSIjMWQ0ZWQ4Ij48cGF0aCBkPSJNNDgwLTMwMHE3NSAwIDEyNy41LTUyLjVUNjYwLTQ4MHYtMTgwSDQ4MHEtNzUgMC0xMjcuNSA1Mi41VDMwMC00ODBxMCAyNiA3IDUwdDIxIDQ2bC0xNiAxNnEtMTEgMTEtMTEgMjh0MTEgMjhxMTEgMTEgMjggMTF0MjgtMTFsMTYtMTZxMjIgMTQgNDYgMjF0NTAgN1ptMC04MHEtOSAwLTE4LTJ0LTE4LTVsODQtODVxMTEtMTEgMTEtMjh0LTExLTI4cS0xMS0xMS0yOC0xMXQtMjggMTFsLTg1IDg0cS0zLTktNS0xOHQtMi0xOHEwLTQyIDI5LTcxdDcxLTI5aDEwMHYxMDBxMCA0Mi0yOSA3MXQtNzEgMjlabTIwLTEyMFpNNDgwLTgwcS04MyAwLTE1Ni0zMS41VDE5Ny0xOTdxLTU0LTU0LTg1LjUtMTI3VDgwLTQ4MHEwLTgzIDMxLjUtMTU2VDE5Ny03NjNxNTQtNTQgMTI3LTg1LjVUNDgwLTg4MHE4MyAwIDE1NiAzMS41VDc2My03NjNxNTQgNTQgODUuNSAxMjdUODgwLTQ4MHEwIDgzLTMxLjUgMTU2VDc2My0xOTdxLTU0IDU0LTEyNyA4NS41VDQ4MC04MFptMC04MHExMzQgMCAyMjctOTN0OTMtMjI3cTAtMTM0LTkzLTIyN3QtMjI3LTkzcS0xMzQgMC0yMjcgOTN0LTkzIDIyN3EwIDEzNCA5MyAyMjd0MjI3IDkzWm0wLTMyMFoiLz48L3N2Zz4=" style="width:18px;height:18px;flex-shrink:0;"> Eco Score</span>' : ''}
+            </div>
+          </div>
+          <div class="cat-img-wrapper" id="img-wrap-${idx}">
+            <img class="cat-img-el" id="cat-img-${idx}" src="" alt="">
+            <div class="cat-drop-placeholder" id="cat-ph-${idx}">
+              <div class="cat-drop-icon">🖼️</div>
+              <div class="cat-drop-text">Glisser une photo ici</div>
+              <div class="cat-drop-sub">ou cliquer pour choisir un fichier</div>
+            </div>
+            <div class="cat-url-row" id="cat-url-row-${idx}" onclick="event.stopPropagation()">
+              <input type="text" class="cat-url-input" id="cat-url-${idx}" placeholder="… ou coller un lien image" onkeydown="if(event.key==='Enter'){loadFromUrl(${idx});event.preventDefault();}">
+              <button class="cat-url-btn" onclick="event.stopPropagation();loadFromUrl(${idx})">→</button>
+            </div>
+            <input type="file" id="cat-file-${idx}" accept="image/*" style="display:none">
+            <button class="cat-remove-btn" id="cat-rm-${idx}" title="Supprimer">✕</button>
+          </div>
+          <div class="cat-card cat-options-card" id="opt-card-${idx}">
+            <div class="cat-card-title">Options</div>
+            <div class="cat-options-rows">
+              ${optRowsHTML}
+            </div>
+
+          </div>
+        </div>
+        <div class="cat-card cat-services-card">
+          <div class="cat-card-title">Services inclus</div>
+          <div class="cat-services-grid">${servicesHTML}</div>
+        </div>
+      </div>
+
+      <div class="cat-right">
+        <div class="cat-card cat-contract-card">
+          <div class="cat-contract-title">Contrat LLD</div>
+          <div class="cat-kpis">
+            <div class="cat-kpi"><div class="cat-kpi-val">${fmtNum(r['Durée (mois)'] || 0)}<span class="cat-kpi-unit">\u00a0mois</span></div></div>
+            <div class="cat-kpi-sep"></div>
+            <div class="cat-kpi"><div class="cat-kpi-val">${fmtNum(r['Kilométrage (km)'] || 0)}<span class="cat-kpi-unit">\u00a0km</span></div></div>
+          </div>
+          <div class="cat-kpi-loyer-row">
+            <div class="cat-kpi-loyer-val">${fmtEur(r['Loyer mensuel (€)'] || 0)}</div>
+            <div class="cat-kpi-loyer-label">Loyer mensuel</div>
+          </div>
+          <div>
+            <div class="cat-cd-row"><span class="cat-cd-label">Prix catalogue</span><span class="cat-cd-val">${fmtEur(r['Prix catalogue (€)'] || 0)}</span></div>
+            <div class="cat-cd-row"><span class="cat-cd-label">Prix total options</span><span class="cat-cd-val">${fmtEur(optTotal)}</span></div>
+          </div>
+        </div>
+        <div class="cat-tco-total">
+          <div class="cat-tco-label">TCO Mensuel</div>
+          <div class="cat-tco-val">${tco}</div>
+        </div>
+        <div class="cat-card cat-comp-card">
+          <div class="cat-card-title">Composition du TCO</div>
+          <div class="cat-comp-line"><span class="cat-comp-label">Loyer leasing mensuel</span><span class="cat-comp-val">${fmtEur(r['Loyer mensuel (€)'] || 0)}</span></div>
+          <div class="cat-comp-line"><span class="cat-comp-label">Coût énergie</span><span class="cat-comp-val">${fmtEur(r['Coût carburant (€)'] || 0)}</span></div>
+          <div class="cat-comp-line"><span class="cat-comp-label">TVS mensuelle</span><span class="cat-comp-val">${fmtEur(r['TVS mensuelle (€)'] || 0)}</span></div>
+          <div class="cat-comp-line"><span class="cat-comp-label">AND mensuelle</span><span class="cat-comp-val">${fmtEur(r['AND mensuelle (€)'] || 0)}</span></div>
+          <div class="cat-comp-line"><span class="cat-comp-label">Ch. patronales AEN</span><span class="cat-comp-val">${fmtEur(r['Charges patronales AEN (€)'] || 0)}</span></div>
+        </div>
+        <div class="cat-card cat-malus-card">
+          <div class="cat-card-title">Malus</div>
+          <div class="cat-comp-line"><span class="cat-comp-label">Malus CO₂</span><span class="cat-comp-val">${fmtEur(r['Malus CO2 (€)'] || 0)}</span></div>
+          <div class="cat-comp-line"><span class="cat-comp-label">Malus au poids</span><span class="cat-comp-val">${fmtEur(r['Malus au poids (€)'] || 0)}</span></div>
+        </div>
+        <div class="cat-card cat-carac-card">
+          <div class="cat-card-title">Caractéristiques techniques</div>
+          ${isElec(r['Énergie']) ?
+            '<div class="cat-comp-line"><span class="cat-comp-label">Autonomie</span><span class="cat-comp-val">' + fmtNum(r['Autonomie batterie'] || 0) + '\u00a0km</span></div>' :
+            '<div class="cat-comp-line"><span class="cat-comp-label">Consommation</span><span class="cat-comp-val">' + fmtNum(r['Consommation'] || 0, 1) + '\u00a0L/100km</span></div>'
+          }
+          <div class="cat-comp-line"><span class="cat-comp-label">CO₂</span><span class="cat-comp-val">${fmtNum(r['CO2 (g/km)'] || 0)}\u00a0g/km</span></div>
+          <div class="cat-comp-line"><span class="cat-comp-label">Volume coffre</span><span class="cat-comp-val">${fmtNum(r['Volume coffre (L)'] || 0)}\u00a0L</span></div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  return page;
+}
+
+// ══════════════════════════════
+// PHOTO DRAG & DROP (per page)
+// ══════════════════════════════
+
+// ══════════════════════════════
+// FIT OPTIONS TEXT TO CARD
+// ══════════════════════════════
+function fitOptions(idx) {
+  const vehCard = document.getElementById('veh-card-' + idx);
+  const optCard = document.getElementById('opt-card-' + idx);
+  const imgWrap = document.getElementById('img-wrap-' + idx);
+  const optRows = optCard ? optCard.querySelectorAll('.cat-opt-name') : [];
+  if (!vehCard || !optCard || !imgWrap || optRows.length === 0) return;
+
+  const MIN_IMG_HEIGHT = 100; // px — minimum photo height we want to preserve
+
+  function tryFit(fontSize, rowPad) {
+    optRows.forEach(r => r.style.fontSize = fontSize + 'px');
+    optCard.querySelectorAll('.cat-opt-row').forEach(r => r.style.padding = rowPad);
+    // After applying, check if imgWrap still has enough height
+    return imgWrap.getBoundingClientRect().height >= MIN_IMG_HEIGHT;
+  }
+
+  // Reset first
+  optRows.forEach(r => r.style.fontSize = '');
+  optCard.querySelectorAll('.cat-opt-row').forEach(r => r.style.padding = '');
+
+  // Try progressively smaller until photo stays above MIN_IMG_HEIGHT
+  const steps = [
+    [12, '4px 6px'],
+    [11, '4px 6px'],
+    [10, '3px 6px'],
+  ];
+
+  for (const [size, pad] of steps) {
+    if (tryFit(size, pad)) break;
+  }
+}
+
+function attachPhotoHandlers(idx) {
+  const wrap = document.getElementById(`img-wrap-${idx}`);
+  const input = document.getElementById(`cat-file-${idx}`);
+  const rmBtn = document.getElementById(`cat-rm-${idx}`);
+  if (!wrap) return;
+
+  wrap.addEventListener('dragover', e => {
+    e.preventDefault(); e.stopPropagation();
+    if (!wrap.classList.contains('has-image')) wrap.classList.add('drag-over');
+  });
+  wrap.addEventListener('dragleave', e => {
+    e.stopPropagation();
+    wrap.classList.remove('drag-over');
+  });
+  wrap.addEventListener('drop', e => {
+    e.preventDefault(); e.stopPropagation();
+    wrap.classList.remove('drag-over');
+    if (wrap.classList.contains('has-image')) return;
+    const file = e.dataTransfer.files[0];
+    if (file && file.type.startsWith('image/')) loadPhoto(file, idx);
+  });
+  wrap.addEventListener('click', e => {
+    if (wrap.classList.contains('has-image')) return;
+    if (e.target.closest('.cat-url-row')) return;
+    input.click();
+  });
+  input.addEventListener('change', e => {
+    const file = e.target.files[0];
+    if (file && file.type.startsWith('image/')) loadPhoto(file, idx);
+  });
+  rmBtn.addEventListener('click', e => {
+    e.preventDefault(); e.stopPropagation();
+    removePhoto(idx);
+  });
+}
+
+function loadPhoto(file, idx) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    const img = document.getElementById(`cat-img-${idx}`);
+    const ph = document.getElementById(`cat-ph-${idx}`);
+    const wrap = document.getElementById(`img-wrap-${idx}`);
+    const rm = document.getElementById(`cat-rm-${idx}`);
+    const urlRow = document.getElementById(`cat-url-row-${idx}`);
+    img.src = e.target.result;
+    img.style.display = 'block';
+    ph.style.display = 'none';
+    if (urlRow) urlRow.style.display = 'none';
+    wrap.classList.add('has-image');
+    rm.style.display = 'flex';
+  };
+  reader.readAsDataURL(file);
+}
+
+function loadFromUrl(idx) {
+    const input = document.getElementById('cat-url-' + idx);
+    const url = (input ? input.value : '').trim();
+    if (!url) return;
+    const img = document.getElementById('cat-img-' + idx);
+    const ph = document.getElementById('cat-ph-' + idx);
+    const wrap = document.getElementById('img-wrap-' + idx);
+    const rm = document.getElementById('cat-rm-' + idx);
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      img.style.display = 'block';
+      ph.style.display = 'none';
+      const urlRow = document.getElementById('cat-url-row-' + idx);
+      if (urlRow) urlRow.style.display = 'none';
+      wrap.classList.add('has-image');
+      rm.style.display = 'flex';
+    };
+    img.onerror = () => {
+      input.style.borderColor = '#ef4444';
+      input.value = '';
+      input.placeholder = 'Lien invalide ou inaccessible';
+      setTimeout(() => { input.style.borderColor = ''; input.placeholder = '… ou coller un lien image'; }, 2500);
+    };
+    img.src = url;
+  }
+
+function removePhoto(idx) {
+  const img = document.getElementById(`cat-img-${idx}`);
+  const ph = document.getElementById(`cat-ph-${idx}`);
+  const wrap = document.getElementById(`img-wrap-${idx}`);
+  const rm = document.getElementById(`cat-rm-${idx}`);
+  const urlRow = document.getElementById(`cat-url-row-${idx}`);
+  const input = document.getElementById(`cat-file-${idx}`);
+  img.src = ''; img.style.display = 'none';
+  ph.style.display = 'flex';
+  if (urlRow) urlRow.style.display = 'flex';
+  wrap.classList.remove('has-image');
+  rm.style.display = 'none';
+  input.value = '';
+}
+
+// ══════════════════════════════
+// DOWNLOAD HTML
+// ══════════════════════════════
+function downloadHTML() {
+  // Serialize current DOM (with embedded photos)
+  const doctype = '<!DOCTYPE html>\n';
+  const head = `<html lang="fr"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Catalogue Revio</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>${extractPrintCSS()}</style>
+</head><body>`;
+  const pagesHTML = document.getElementById('pages-container').innerHTML;
+  const footer = '</body></html>';
+  const blob = new Blob([doctype + head + pagesHTML + footer], { type: 'text/html;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `catalogue_revio_${new Date().toISOString().slice(0,10)}.html`;
+  a.click();
+}
+
+function extractPrintCSS() {
+  // Return catalogue-specific styles for the standalone download
+  return `
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Inter',sans-serif;background:#d1d5db;color:#111827;}
+  .page-counter{font-size:11px;color:#6b7280;background:white;border-radius:20px;padding:3px 12px;font-weight:500;width:fit-content;margin:16px auto 0;}
+  .pages-container{padding:24px 0 40px;display:flex;flex-direction:column;align-items:center;gap:24px;}
+  .cat-page{width:1122px;height:794px;background:#f5f6f8;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,0.18);}
+  .cat-topbar{background:#fff;border-bottom:1px solid #e8eaed;padding:0 28px;height:46px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+  .cat-topbar-left{display:flex;align-items:center;gap:14px;}
+  .cat-logo{display:flex;align-items:center;} .cat-logo img{height:26px;width:auto;}
+  .cat-topbar-date{font-size:12px;color:#9ca3af;}
+  .cat-topbar-right{font-size:12px;color:#6b7280;font-weight:500;}
+  .cat-body{display:grid;grid-template-columns:1fr 320px;gap:16px;padding:16px 16px 12px;flex:1;min-height:0;align-items:stretch;}
+  .cat-left{display:flex;flex-direction:column;gap:12px;min-height:0;}
+  .cat-right{display:flex;flex-direction:column;gap:10px;min-height:0;}
+  .cat-card{background:#fff;border-radius:12px;border:1px solid #e8eaed;padding:14px 18px;}
+  .cat-card-title{font-size:10px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.8px;margin-bottom:9px;}
+  .cat-vehicle-card{flex:1;display:flex;flex-direction:column;min-height:0;}
+  .cat-vehicle-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:3px;}
+  .cat-vehicle-title{font-size:20px;font-weight:700;color:#111827;}
+  .cat-vehicle-subtitle{font-size:12px;color:#9ca3af;margin-bottom:12px;}
+  .cat-badge{font-size:12px;font-weight:600;padding:0 13px;height:32px;border-radius:20px;white-space:nowrap;display:inline-flex;align-items:center;gap:5px;}
+  .cat-img-wrapper{flex:1;min-height:220px;border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:12px;position:relative;overflow:hidden;cursor:pointer;background:#f8faff;border:2px dashed #c7d2fe;}
+  .cat-img-wrapper.has-image{border:none;cursor:default;}
+  .cat-drop-placeholder{display:flex;flex-direction:column;align-items:center;gap:6px;pointer-events:none;}
+  .cat-drop-icon{font-size:30px;opacity:.3;}
+  .cat-drop-text{font-size:13px;font-weight:600;color:#6366f1;}
+  .cat-drop-sub{font-size:11px;color:#a5b4fc;}
+  .cat-img-el{display:none;width:100%;height:100%;object-fit:cover;border-radius:8px;position:absolute;top:0;left:0;}
+  .cat-remove-btn{position:absolute;top:8px;right:8px;background:rgba(0,0,0,.5);color:#fff;border:none;border-radius:50%;width:26px;height:26px;font-size:13px;cursor:pointer;display:none;align-items:center;justify-content:center;z-index:10;}
+  .cat-specs-row{display:grid;grid-template-columns:1fr 1fr;flex-shrink:0;}
+  .cat-spec-item{padding:7px 0;border-top:1px solid #f3f4f6;}
+  .cat-spec-item:nth-child(odd){padding-right:18px;}
+  .cat-spec-item:nth-child(even){padding-left:18px;border-left:1px solid #f3f4f6;}
+  .cat-spec-key{font-size:9px;font-weight:600;color:#9ca3af;letter-spacing:.8px;text-transform:uppercase;margin-bottom:2px;}
+  .cat-spec-val{font-size:14px;font-weight:600;color:#111827;}
+  .cat-eco-val{color:#059669!important;font-size:13px;}
+  .cat-eco-badge{background:#f0fdf4;}
+  .cat-eco-pill{background:#eff6ff!important;color:#1d4ed8!important;border:1px solid #bfdbfe!important;}
+  .cat-services-card{padding:12px 16px;flex-shrink:0;}
+  .cat-services-card .cat-card-title{margin-bottom:8px;}
+  .cat-services-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  .cat-service-item{display:flex;gap:10px;align-items:center;padding:11px 14px;background:#f9fafb;border-radius:8px;}
+  .cat-service-emoji{display:flex;align-items:center;flex-shrink:0;width:22px;height:22px;}
+  .cat-service-name{font-size:13px;font-weight:600;color:#111827;margin-bottom:2px;}
+  .cat-service-desc{font-size:11px;color:#9ca3af;line-height:1.3;}
+  .cat-contract-card{padding:16px 20px;flex-shrink:0;}
+  .cat-contract-title{font-size:18px;font-weight:700;color:#111827;margin-bottom:14px;padding-bottom:12px;border-bottom:2px solid #f3f4f6;}
+  .cat-kpis{display:flex;align-items:center;margin-bottom:16px;}
+  .cat-kpi{flex:1;text-align:center;}
+  .cat-kpi-val{font-size:28px;font-weight:700;color:#1d4ed8;line-height:1;}
+  .cat-kpi-unit{font-size:13px;font-weight:500;color:#6b7280;}
+  .cat-kpi-sep{width:1px;height:38px;background:#e5e7eb;margin:0 8px;}
+  .cat-kpi-loyer-row{text-align:center;padding:10px 0 14px;border-top:1px solid #f3f4f6;margin-top:-8px;}
+  .cat-kpi-loyer-val{font-size:26px;font-weight:700;color:#1d4ed8;line-height:1;margin-bottom:3px;}
+  .cat-kpi-loyer-label{font-size:10px;font-weight:600;color:#9ca3af;text-transform:uppercase;letter-spacing:1px;}
+  .cat-cd-row{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #f3f4f6;font-size:13px;}
+  .cat-cd-row:last-child{border-bottom:none;}
+  .cat-cd-label{color:#6b7280;}
+  .cat-cd-val{font-weight:600;color:#111827;}
+  .cat-tco-total{background-color:#1d4ed8;background-image:linear-gradient(135deg,#1d4ed8 0%,#3b82f6 100%);border-radius:12px;padding:16px 20px;text-align:center;flex-shrink:0;}
+  .cat-tco-label{font-size:10px;font-weight:700;color:rgba(255,255,255,.75);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:4px;}
+  .cat-tco-val{font-size:32px;font-weight:700;color:#fff;line-height:1;}
+  .cat-comp-card{padding:14px 18px;flex-shrink:0;}
+  .cat-comp-line{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f3f4f6;font-size:13px;}
+  .cat-comp-line:last-child{border-bottom:none;}
+  .cat-comp-label{color:#374151;}
+  .cat-comp-val{font-weight:600;color:#111827;}
+  .cat-options-card{padding:10px 16px;flex-shrink:0;}
+  .cat-options-rows{display:grid;grid-template-columns:1fr 1fr;gap:0;overflow:hidden;}
+  .cat-opt-row{display:flex;align-items:baseline;padding:4px 6px;border-bottom:1px solid #f3f4f6;gap:4px;}
+  .cat-opt-row:last-child{border-bottom:none;}
+  .cat-opt-name{font-size:12px;color:#374151;flex:1;line-height:1.4;}
+  .cat-opt-price{font-size:12px;font-weight:600;color:#111827;white-space:nowrap;flex-shrink:0;}
+  .cat-carac-card{padding:12px 18px;flex-shrink:0;}
+  @media print{
+    @page{size:297mm 210mm;margin:0;}
+    html,body{margin:0;padding:0;background:white;}
+    .pages-container{padding:0;background:white;gap:0;}
+    .page-counter{display:none;}
+    .cat-page{width:297mm;height:210mm;margin:0;box-shadow:none;page-break-after:always;page-break-inside:avoid;background:#f5f6f8!important;}
+    *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}
+    .cat-drop-placeholder{display:none!important;}
+    .cat-remove-btn{display:none!important;}
+    .cat-img-wrapper{border:1px solid #e0e7ff!important;}
+  }
+  `;
+}
+
+// ══════════════════════════════
+// UTILS
+// ══════════════════════════════
+function esc(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function capitalize(s) {
+  return s.replace(/\w\S*/g, w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
+}
+function resetToUpload() {
+  document.getElementById('catalogue-screen').style.display = 'none';
+  document.getElementById('upload-screen').style.display = 'flex';
+  document.getElementById('csv-input').value = '';
+  document.getElementById('pages-container').innerHTML = '';
+}
+</script>
+</body>
+</html>

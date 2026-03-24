@@ -1,0 +1,33 @@
+/* ═══════════════════════════════════════════
+   PRINT STYLES
+═══════════════════════════════════════════ */
+@media print {
+  @page { size: 297mm 210mm; margin: 0; }
+  html, body { margin: 0; padding: 0; background: white; }
+  #upload-screen, #loading-screen, .toolbar { display: none !important; }
+  #catalogue-screen { display: block !important; }
+  .pages-container { padding: 0; background: white; gap: 0; }
+  .page-counter { display: none; }
+  .cat-page {
+    width: 297mm; height: 210mm;
+    margin: 0; box-shadow: none; border-radius: 0;
+    page-break-after: always;
+    page-break-inside: avoid;
+    background: #f5f6f8 !important;
+  }
+  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
+  .sum-row:hover { background: transparent !important; }
+  .cat-cover { background: #fff !important; }
+  .cover-notes:empty { border: none !important; background: transparent !important; box-shadow: none !important; min-height: 0 !important; padding: 0 !important; }
+  .cover-notes:not(:empty) { border: 1px solid #e5e7eb !important; box-shadow: none !important; background: #f9fafb !important; }
+  .cover-notes::before { display: none !important; }
+  .cover-notes-label { display: none; }
+  .cover-notes:not(:empty) + * { display: block; }
+  .cover-notes-wrapper:has(.cover-notes:not(:empty)) .cover-notes-label { display: block; }
+  .cat-cover::before { background: linear-gradient(90deg, #1d4ed8, #3b82f6) !important; }
+  .cat-drop-placeholder { display: none !important; }
+  .cat-url-row { display: none !important; }
+  [id^="cat-url-row-"] { display: none !important; }
+  .cat-remove-btn { display: none !important; }
+  .cat-img-wrapper { border: 1px solid #e0e7ff !important; cursor: default !important; }
+}
