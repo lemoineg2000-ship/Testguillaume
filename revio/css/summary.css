@@ -1,0 +1,22 @@
+/* ═══════════════════════════════════════════
+   SUMMARY PAGE
+═══════════════════════════════════════════ */
+.cat-summary { background: #fff !important; }
+.sum-body { padding: 20px 28px 16px; display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden; }
+.sum-title { font-size: 18px; font-weight: 700; color: #111827; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 2px solid #f3f4f6; flex-shrink: 0; }
+.sum-table { width: 100%; border-collapse: collapse; }
+.sum-head { background: #f8faff; }
+.sum-th { padding: 9px 12px; font-size: 9px; font-weight: 700; color: #9ca3af; text-transform: uppercase; letter-spacing: 1px; text-align: center; border-bottom: 2px solid #e5e7eb; border-right: 1px dashed #e5e7eb; }
+.sum-th:first-child { text-align: center; }
+.sum-th:nth-child(2) { text-align: left; }
+.sum-th:last-child { border-right: none; }
+.sum-row { border-bottom: 1px dashed #e5e7eb; }
+.sum-row:last-child { border-bottom: none; }
+.sum-td { padding: 8px 12px; font-size: 12px; color: #374151; vertical-align: middle; text-align: center; border-right: 1px dashed #e5e7eb; }
+.sum-td:last-child { border-right: none; }
+.sum-num { color: #d1d5db; font-size: 11px; width: 28px; }
+.sum-car { text-align: left !important; }
+.sum-car-name { font-size: 13px; font-weight: 700; color: #111827; }
+.sum-car-model { font-size: 10px; color: #9ca3af; margin-top: 1px; }
+.sum-num-val { font-weight: 600; color: #111827; }
+.sum-qty-line { width: 44px; height: 1px; background: #9ca3af; margin: 0 auto; }
