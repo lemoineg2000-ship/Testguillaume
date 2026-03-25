@@ -37,3 +37,7 @@ export function esc(s) {
 export function capitalize(s) {
   return s.replace(/\w\S*/g, w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
 }
+
+export function isVU(row) {
+  return (row['Type véhicule'] || '').trim().toUpperCase() === 'VU';
+}
