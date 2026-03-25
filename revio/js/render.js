@@ -2,7 +2,7 @@
 // CATALOGUE GENERATION — DOM RENDERING
 // ══════════════════════════════
 import { state } from './state.js';
-import { fmtNum, fmtEur, isElec, energyBadge, fmtDate, esc, capitalize } from './helpers.js';
+import { fmtNum, fmtEur, isElec, isVU, energyBadge, fmtDate, esc, capitalize } from './helpers.js';
 import { ICON_BUILD, ICON_TIRE, ICON_SAFETY, ICON_GEAR, iconImg } from './icons.js';
 import { attachPhotoHandlers, fitOptions } from './photo.js';
 
@@ -88,7 +88,9 @@ export function buildSummaryPage(rows) {
     const badge     = energyBadge(r['Énergie'] || '');
     const loyer     = fmtEur(r['Loyer mensuel (€)'] || 0);
     const tco       = fmtEur(r['TCO mensuel (€)'] || r['TCO / mois (€)'] || 0);
-    const coffre    = r['Volume coffre (L)'] ? fmtNum(r['Volume coffre (L)']) + '\u00a0L' : '—';
+    const coffre    = isVU(r)
+      ? (r['PTAC (kg)'] ? fmtNum(r['PTAC (kg)']) + '\u00a0kg' : '—')
+      : (r['Volume coffre (L)'] ? fmtNum(r['Volume coffre (L)']) + '\u00a0L' : '—');
     const autonomie = isElec(r['Énergie'])
       ? (r['Autonomie batterie'] ? fmtNum(r['Autonomie batterie']) + '\u00a0km' : '—')
       : (r['Consommation'] ? fmtNum(r['Consommation'], 1) + '\u00a0L/100' : '—');
@@ -126,7 +128,7 @@ export function buildSummaryPage(rows) {
             <th class="sum-th">Énergie</th>
             <th class="sum-th">Loyer mensuel</th>
             <th class="sum-th">TCO mensuel</th>
-            <th class="sum-th">Coffre</th>
+            <th class="sum-th">Coffre / PTAC</th>
             <th class="sum-th">Autonomie / Conso</th>
             <th class="sum-th">Qté</th>
           </tr>
@@ -235,7 +237,7 @@ export function buildPage(r, idx) {
 
       <div class="cat-right">
         <div class="cat-card cat-contract-card">
-          <div class="cat-contract-title">Contrat LLD</div>
+          <div class="cat-contract-title">Contrat LLD${isVU(r) ? ' - HT' : ' - TTC'}</div>
           <div class="cat-kpis">
             <div class="cat-kpi"><div class="cat-kpi-val">${fmtNum(r['Durée (mois)'] || 0)}<span class="cat-kpi-unit">\u00a0mois</span></div></div>
             <div class="cat-kpi-sep"></div>
@@ -274,7 +276,10 @@ export function buildPage(r, idx) {
             '<div class="cat-comp-line"><span class="cat-comp-label">Consommation</span><span class="cat-comp-val">' + fmtNum(r['Consommation'] || 0, 1) + '\u00a0L/100km</span></div>'
           }
           <div class="cat-comp-line"><span class="cat-comp-label">CO₂</span><span class="cat-comp-val">${fmtNum(r['CO2 (g/km)'] || 0)}\u00a0g/km</span></div>
-          <div class="cat-comp-line"><span class="cat-comp-label">Volume coffre</span><span class="cat-comp-val">${fmtNum(r['Volume coffre (L)'] || 0)}\u00a0L</span></div>
+          ${isVU(r)
+            ? `<div class="cat-comp-line"><span class="cat-comp-label">PTAC</span><span class="cat-comp-val">${fmtNum(r['PTAC (kg)'] || 0)}\u00a0kg</span></div>`
+            : `<div class="cat-comp-line"><span class="cat-comp-label">Volume coffre</span><span class="cat-comp-val">${fmtNum(r['Volume coffre (L)'] || 0)}\u00a0L</span></div>`
+          }
         </div>
       </div>
     </div>
