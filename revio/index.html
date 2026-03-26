@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Revio — Générateur de catalogues</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/variables.css">
 <link rel="stylesheet" href="css/upload.css">
@@ -64,7 +66,8 @@
     <div class="toolbar-right">
       <button class="btn btn-ghost" id="btn-reset">← Nouveau CSV</button>
       <button class="btn btn-green" id="btn-download">⬇ Télécharger HTML</button>
-      <button class="btn btn-primary" id="btn-print">🖨 Imprimer / PDF</button>
+      <button class="btn btn-secondary" id="btn-pdf">📄 PDF formulaire</button>
+      <button class="btn btn-primary" id="btn-print">🖨 Imprimer</button>
     </div>
   </div>
   <div class="pages-container" id="pages-container"></div>

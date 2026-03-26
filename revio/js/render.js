@@ -107,7 +107,7 @@ export function buildSummaryPage(rows) {
       <td class="sum-td sum-num-val">${tco}</td>
       <td class="sum-td sum-num-val">${coffre}</td>
       <td class="sum-td sum-num-val">${autonomie}</td>
-      <td class="sum-td"><div class="sum-qty-line"></div></td>
+      <td class="sum-td"><input type="number" class="sum-qty-input" min="0" placeholder="—" title="Indiquer la quantité souhaitée"></td>
     </tr>`;
   }).join('');
 
@@ -130,7 +130,7 @@ export function buildSummaryPage(rows) {
             <th class="sum-th">TCO mensuel</th>
             <th class="sum-th">Coffre / PTAC</th>
             <th class="sum-th">Autonomie / Conso</th>
-            <th class="sum-th">Qté</th>
+            <th class="sum-th sum-th-qty">Qté souhaitée ✏️</th>
           </tr>
         </thead>
         <tbody>${rowsHTML}</tbody>

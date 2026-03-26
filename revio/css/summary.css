@@ -19,4 +19,24 @@
 .sum-car-name { font-size: 13px; font-weight: 700; color: #111827; }
 .sum-car-model { font-size: 10px; color: #9ca3af; margin-top: 1px; }
 .sum-num-val { font-weight: 600; color: #111827; }
-.sum-qty-line { width: 44px; height: 1px; background: #9ca3af; margin: 0 auto; }
+.sum-th-qty { color: #1d4ed8 !important; }
+.sum-qty-input {
+  width: 64px;
+  height: 32px;
+  border: 2px solid #c7d2fe;
+  border-radius: 8px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-size: 15px;
+  font-weight: 700;
+  text-align: center;
+  outline: none;
+  cursor: text;
+  transition: border-color .15s, background .15s;
+  font-family: inherit;
+  -moz-appearance: textfield;
+}
+.sum-qty-input::-webkit-outer-spin-button,
+.sum-qty-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.sum-qty-input:focus { border-color: #1d4ed8; background: #dbeafe; }
+.sum-qty-input::placeholder { color: #93c5fd; font-size: 13px; font-weight: 400; }

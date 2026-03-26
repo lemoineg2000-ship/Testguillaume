@@ -5,6 +5,7 @@
 import { processCSV } from './csv.js';
 import { resetToUpload } from './render.js';
 import { downloadHTML } from './export.js';
+import { downloadPDF } from './pdf.js';
 
 // ── Upload zone drag & drop ──────────────────
 const dropZone = document.getElementById('drop-zone');
@@ -38,4 +39,5 @@ csvInput.addEventListener('change', e => {
 // ── Toolbar buttons ──────────────────────────
 document.getElementById('btn-reset').addEventListener('click', resetToUpload);
 document.getElementById('btn-download').addEventListener('click', downloadHTML);
+document.getElementById('btn-pdf').addEventListener('click', downloadPDF);
 document.getElementById('btn-print').addEventListener('click', () => window.print());
